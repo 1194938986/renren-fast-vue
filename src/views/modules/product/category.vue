@@ -12,8 +12,11 @@
 -->
 <template>
   <div>
+    <el-switch v-model="draggable" active-text="开启拖拽" inactive-text="关闭拖拽"></el-switch>
+    <el-button v-if="draggable" @click="batchSave">批量保存</el-button>
+    <el-button type="danger" @click="batchDelete">批量删除</el-button>
     <el-tree :data="menus" :props="defaultProps" :expand-on-click-node="false" show-checkbox node-key="catId" :default-expanded-keys="expandedKey"
-      draggable :allow-drop="allowDrop" @node-drop="handleDrop ">
+      :draggable="draggable" :allow-drop="allowDrop" @node-drop="handleDrop" ref="menuTree">
       <span class="custom-tree-node" slot-scope="{ node, data }">
         <span> {{ node.label }}</span>
         <span>
@@ -57,6 +60,8 @@ export default {
 
   data () {
     return {
+      ppCid: [],
+      draggable: false,
       updateNodes: [],
       maxLevel: 1,
       title: ``,
@@ -81,6 +86,54 @@ export default {
     }
   },
   methods: {
+    batchDelete () {
+      let catIds = []
+      let checkNodes = this.$refs.menuTree.getCheckedNodes();
+      console.log('被选中的元素', checkNodes)
+      for (let i = 0; i < checkNodes.length; i++) {
+        catIds.push(checkNodes[i].catId)
+      }
+      this.$confirm(`是否批量删除【${catIds}】菜单?`, '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        this.$http({
+          url: this.$http.adornUrl('/product/category/delete'),
+          method: `post`,
+          data: this.$http.adornData(catIds, false)
+        }).then(({ data }) => {
+          this.$message({
+            message:"菜单批量删除成功",
+            type: "success"
+          })
+          this.getMenus()
+        });
+      }).catch(() => {
+
+      })
+
+    },
+    batchSave () {
+      this.$http({
+        url: this.$http.adornUrl('/product/category/update/sort'),
+        method: `post`,
+        data: this.$http.adornData(this.updateNodes, false)
+      }).then(({ data }) => {
+        this.$message({
+          message: "菜单顺序等修改成功",
+          type: "success"
+        })
+
+        //  刷新出新的菜单
+        this.getMenus()
+        //  设置需要默认展开的菜单
+        this.expandedKey = [this.ppCid]
+        this.updateNodes = []
+        this.maxLevel = 0
+        // this.ppCid = 0
+      });
+    },
     handleDrop (draggingNode, dropNode, dropType, ev) {
       //  第一个节点(被拖)  第二个节点（被入）  它们之间的关系
       console.log(`🚀 ~ file: category.vue ~ line 84 ~ handleDrop ~ draggingNode, dropNode, dropType`, draggingNode, dropNode, dropType)
@@ -94,8 +147,9 @@ export default {
       } else {
         ppCid = dropNode.level
         siblings = dropNode.childNodes
-        console.log(`🚀 ~ file: category.vue ~ line 99 ~ handleDrop ~ siblings`, siblings)
       }
+
+      this.ppCid.push(ppCid)
 
       //  如果說拖拽只改变视图，改变的是表象，那么这里的逻辑改变的就是内部逻辑关系，最后应该还得上传至数据库
       //  2、当前拖拽节点的最新顺序
@@ -116,10 +170,9 @@ export default {
       }
 
       //  3、当前拖拽节点的最新层级
-      console.log(`🚀 ~ file: category.vue ~ line 105 ~ handleDrop ~ updateNodes`, this.updateNodes)
+      // this.batchSave()
     },
     updateChildNodeLevel (node) {
-      console.log(`🚀 ~ file: category.vue ~ line 124 ~ updateChildNodeLevel ~ childNodes`, node.childNodes)
       if (node.childNodes.length > 0) {
         console.log(`🚀 ~ file: category.vue ~ line 125 ~ updateChildNodeLevel ~ childNodes.length`, node.childNodes.length)
 
@@ -131,26 +184,30 @@ export default {
       }
     },
     allowDrop (draggingNode, dropNode, type) {
-      // console.log(`🚀 ~ file: category.vue ~ line 87 ~ allowDrop ~ draggingNode, dropNode, type`, draggingNode, dropNode, type)
+      console.log(`🚀 ~ file: category.vue ~ line 87 ~ allowDrop ~ draggingNode, dropNode, type`, draggingNode, dropNode, type)
       this.countNodeLevel(draggingNode)
 
       //  当前正在拖动的节点+父节点所在的深度不大于3即可
       //  deep为子往下
       let deep = Math.abs(this.maxLevel - draggingNode.level) + 1
+      // console.log(`🚀 ~ file: category.vue ~ line 156 ~ allowDrop ~ draggingNode.level`, draggingNode.level)
+      // console.log(`🚀 ~ file: category.vue ~ line 156 ~ allowDrop ~ this.maxLevel`, this.maxLevel)
+
 
       //   this.maxLevel
       if (type === `inner`) {
-        return deep + dropNode.data.catLevel <= 3
+        // console.log(`🚀 ~ file: category.vue ~ line 163 ~ allowDrop ~ dropNode.level`, dropNode.level )
+        return deep + dropNode.level <= 3
       } else {
         return deep + dropNode.parent.level <= 3
       }
     },
     countNodeLevel (node) {
       //  找到所有子节点，求出最大深度
-      if (node.data.children != null && node.data.children.length > 0) {
+      if (node.childNodes != null && node.childNodes.length > 0) {
         for (let i = 0; i < node.data.children.length; i++) {
-          if (node.data.children[i].catLevel > this.maxLevel) {
-            this.maxLevel = node.data.children[i].catLevel
+          if (node.childNodes[i].level > this.maxLevel) {
+            this.maxLevel = node.childNodes[i].level
           }
           this.countNodeLevel(node.childNodes[i])
         }
