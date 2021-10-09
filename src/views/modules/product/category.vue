@@ -88,7 +88,7 @@ export default {
   methods: {
     batchDelete () {
       let catIds = []
-      let checkNodes = this.$refs.menuTree.getCheckedNodes();
+      let checkNodes = this.$refs.menuTree.getCheckedNodes()
       console.log('被选中的元素', checkNodes)
       for (let i = 0; i < checkNodes.length; i++) {
         catIds.push(checkNodes[i].catId)
@@ -104,15 +104,14 @@ export default {
           data: this.$http.adornData(catIds, false)
         }).then(({ data }) => {
           this.$message({
-            message:"菜单批量删除成功",
-            type: "success"
+            message: `菜单批量删除成功`,
+            type: `success`
           })
           this.getMenus()
-        });
+        })
       }).catch(() => {
 
       })
-
     },
     batchSave () {
       this.$http({
@@ -121,8 +120,8 @@ export default {
         data: this.$http.adornData(this.updateNodes, false)
       }).then(({ data }) => {
         this.$message({
-          message: "菜单顺序等修改成功",
-          type: "success"
+          message: `菜单顺序等修改成功`,
+          type: `success`
         })
 
         //  刷新出新的菜单
@@ -132,13 +131,13 @@ export default {
         this.updateNodes = []
         this.maxLevel = 0
         // this.ppCid = 0
-      });
+      })
     },
     handleDrop (draggingNode, dropNode, dropType, ev) {
       //  第一个节点(被拖)  第二个节点（被入）  它们之间的关系
       console.log(`🚀 ~ file: category.vue ~ line 84 ~ handleDrop ~ draggingNode, dropNode, dropType`, draggingNode, dropNode, dropType)
 
-      let ppCid, ppSort, ppLevel, siblings
+      let ppCid, siblings
 
       //  当前节点最新的父节点ID，当前节点最新的顺序，当前节点的最新层级
       if (dropType === `before` || dropType === `after`) {
@@ -157,7 +156,7 @@ export default {
         if (siblings[i].data.catId === draggingNode.data.catId) {
           //  如果遍历的是当前正在拖拽的节点
           let catLevel = draggingNode.level
-          if (siblings[i].level != draggingNode.level) {
+          if (siblings[i].level !== draggingNode.level) {
             //  当前节点的层级发生变化
             catLevel = siblings[i].level
             //  修改它子节点的层级
@@ -192,7 +191,6 @@ export default {
       let deep = Math.abs(this.maxLevel - draggingNode.level) + 1
       // console.log(`🚀 ~ file: category.vue ~ line 156 ~ allowDrop ~ draggingNode.level`, draggingNode.level)
       // console.log(`🚀 ~ file: category.vue ~ line 156 ~ allowDrop ~ this.maxLevel`, this.maxLevel)
-
 
       //   this.maxLevel
       if (type === `inner`) {
